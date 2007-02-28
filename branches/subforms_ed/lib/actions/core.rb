@@ -9,7 +9,7 @@ module ActiveScaffold::Actions
     # Provides validation and template for displaying association in sub-list
     def add_association
       @association = active_scaffold_config.model.reflect_on_association(params[:id].to_sym)
-      @record = find_or_create_for_params(params[@association.klass.to_s.underscore], @association.klass)
+      @record = find_or_create_for_params(params[@association.klass.to_s.underscore] || params[:record], @association.klass)
 
       render(:action => 'add_association', :layout => false)
     end

@@ -1,14 +1,30 @@
 <% url_options = params_for(:action => :create) -%>
+<% nested_association = active_scaffold_nested_associations#{:parent => :company, :parents_association => :contacts} %>
+<% create_form_id = element_form_id(:action => :create) %>
 <% if request.xhr? -%>
-<%= form_remote_tag :url => url_options,
-                    :after => "Element.show('#{loading_indicator_id(:action => :create, :id => params[:id])}'); Form.disable('#{element_form_id(:action => :create)}');",
-                    :complete => "Element.hide('#{loading_indicator_id(:action => :create, :id => params[:id])}'); Form.enable('#{element_form_id(:action => :create)}');",
+
+	<% if nested_association -%>
+		<% klass = nested_association[:parents_association] %>
+		<% temporary_id = generate_temporary_id %>
+		<% list_id = active_scaffold_tbody_id #"#{klass.to_s.downcase}-form-#{temporary_id}" %>
+		<% create_form_id = "#{klass.to_s.downcase}-create-#{temporary_id}" %>
+		<% create_form_messages_id = "#{klass.to_s.downcase}-create-messages-#{temporary_id}" %>
+		<% controller, controller_path = active_scaffold_controller_for(nested_association[:parent], url_options[:controller]) %>
+
+		<div id="<%= create_form_id %>" class="nested-form">
+		<%= link_to "", { :controller => controller_path, :action => "add_association", :id => klass, :messages_id => create_form_messages_id, :form_id => create_form_id, :list_id => list_id },
+		                { :class => "form-action" } %>
+	<% else -%>
+		<%= form_remote_tag :url => url_options,
+                    :after => "Element.show('#{loading_indicator_id(:action => :create, :id => params[:id])}'); Form.disable('#{create_form_id}');",
+                    :complete => "Element.hide('#{loading_indicator_id(:action => :create, :id => params[:id])}'); Form.enable('#{create_form_id}');",
                     :html => { :href => url_for(url_options),
-                    :id => element_form_id(:action => :create),
+                    :id => create_form_id,
                     :class => 'create' } %>
+	<% end -%>
 <% else -%>
-<%= form_tag url_options,
-             :id => element_form_id(:action => :create),
+	<%= form_tag url_options,
+             :id => create_form_id,
              :class => 'create' %>
 <% end -%>
 
@@ -23,12 +39,19 @@
   <%= render :partial => 'form', :locals => { :columns => active_scaffold_config.create.columns } %>
 
   <p class="form-footer">
-  <%= submit_tag _('CREATE'), :class => "submit" %>
+    <button class="submit"><%= _('CREATE') %></button>
+  <%#= submit_tag _('CREATE'), :class => "submit" %>
   <%= loading_indicator_tag(:action => :create, :id => params[:id]) %>
   <%= link_to _('CANCEL'), params_for(:action => 'list'), { :onclick => "$('#{action_link_id(:action => active_scaffold_config.create.link.action)}').action_link.close(); return false;" }%>
   </p>
-
+<% if nested_association -%>
+	</div>
+<% else -%>
 <%= end_form_tag %>
+<% end -%>
 <script type="text/javascript">
-Form.focusFirstElement('<%= element_form_id(:action => :create) -%>');
+<% if nested_association -%>
+new Form.Pseudo('<%= create_form_id %>');
+<% end -%>
+Form.focusFirstElement('<%= create_form_id -%>');
 </script>

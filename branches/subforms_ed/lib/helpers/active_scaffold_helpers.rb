@@ -17,6 +17,16 @@ module ActionView::Helpers
       @controller.class.active_scaffold_config
     end
 
+    def active_scaffold_nested_associations
+      id = params[:eid] || params[:controller]
+      session_index = "as:#{id}"
+      session[session_index] ||= {}
+      session[session_index]
+      return session[session_index][:nested_associations]
+      # Need to make active_scaffold_session_storage visible to this helper 
+      #return @controller.class.active_scaffold_session_storage[:nested_associations]
+    end
+
     ## TODO We should check the the model being used is the same Class
     ##      ie make sure ProductsController doesn't active_scaffold :shoe
     def active_scaffold_config_for(klass)

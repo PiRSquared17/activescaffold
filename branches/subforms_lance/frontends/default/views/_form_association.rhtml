@@ -1,10 +1,14 @@
 <%
 =begin
-* need to add a popup that browses lists of available objects. "available" will initially be defined as all objects. the popup needs pagination, sorting, and search, but instead of create/edit/delete should just have one clicky for adding the object to the form. also, there is no need to persist state in the session.
 * need to begin restricting. don't display empty form for full associations. optionally don't allow already-associated objects to be reassociated.
-* need a way to remove existing
 
-FIND
+TODO
+don't display "create" without create permissions
+don't display existing without update permissions (or rather, just use ui_type => :select)
+only display one block for singular associations
+post multiple new records
+contextual error display (tough)
+build finder
   * it's a simplified list. it doesn't accept action links. it has searching and pagination.
   * it can be configured with a discrete list of columns.
   * its purpose is to pass a record id to some callback, via ruby or javascript.
@@ -17,7 +21,7 @@ FIND
 <%
 parent_record = @record
 associated = parent_record.send(column.name)
-associated = [associated] unless associated.is_a? Array
+associated = associated.is_a?(Array) ? associated.sort_by {|r| r.id} : [associated]
 -%>
 <label><%= column.label -%></label>
 <ul class="association">
@@ -31,11 +35,19 @@ associated = [associated] unless associated.is_a? Array
     <%= render :partial => 'form_association_record', :locals => {:scope => "[#{column.name}]", :parent_record => parent_record} %>
   </li>
   <% end -%>
-
+<!--
   <li class="association-record association-record-new">
     <% @record = column.association.klass.new -%>
     <%= render :partial => 'form_association_record', :locals => {:scope => "[#{column.name}]", :parent_record => parent_record} %>
-    <%= button_to_function 'Create', 'alert("this would clone the create form into an update form, and reset the create form. it would not validate.");' %>
+  <li>
+-->
+  <li>
+    <%
+    @record = column.association.klass.new
+    template = render(:partial => 'form_association_record', :locals => {:scope => "[#{column.name}]", :parent_record => parent_record, :record_id => '{{new}}'})
+    template = h(template.gsub(/[\n\r]/, '').gsub(/'/, "&#39;"))
+    -%>
+    <%= link_to_function 'Create Another', %|t='<li class="association-record association-record-new">#{template}</li>'; new Insertion.Before(this.parentNode, t.gsub(/{{new}}/, 'new' + Math.floor(Math.random() * 10000000)))| %>
   </li>
 </ul>
 <% @record = parent_record -%>

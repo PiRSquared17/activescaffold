@@ -2,11 +2,15 @@
 <% klass = column.association.klass %>
 <% association = column.association %>
 <% association_config = active_scaffold_config_for(klass) %>
-<% association_name, columns = column.name, association_config.create.columns %>
+<% association_name = column.name %>
+<% columns = association_config.create.columns %>
 <% eval("@#{klass.to_s.underscore} = klass.send(:new)") %>
 
+<% if true %>
+	<% controller, controller_path = active_scaffold_controller_for(klass, params[:controller]) %>
+	<%= render :active_scaffold => controller_path, :params => {active_scaffold_config.columns[column.association.name].association.primary_key_name.to_sym => params[:id]}, :nested_association => {:parent => active_scaffold_config.model_id, :parents_association => klass}  %>
 
-<% if column.association.klass == @record.class %>
+<% elsif column.association.klass == @record.class %>
 
 <%# TODO Don't show associations back to parent %>
 

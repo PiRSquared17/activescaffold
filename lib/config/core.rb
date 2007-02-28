@@ -110,7 +110,7 @@ module ActiveScaffold::Config
       # first, add an iterator that returns actual Column objects and a method for registering Column objects
       ActiveScaffold::DataStructures::ActionColumns.class_eval do
         include Enumerable
-        def each
+        def each(options = {}, &proc)
           @set.each do |item|
             unless item.is_a? ActiveScaffold::DataStructures::ActionColumns
               begin
@@ -120,7 +120,11 @@ module ActiveScaffold::Config
                 next
               end
             end
-            yield item
+            if item.is_a? ActiveScaffold::DataStructures::ActionColumns and options.has_key?(:flatten) and options[:flatten]
+              item.each(options, &proc)
+            else
+              yield item
+            end
           end
         end
 

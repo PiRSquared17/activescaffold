@@ -65,6 +65,7 @@ module ActiveScaffold
       module_eval do
         include ActiveScaffold::Finder
         include ActiveScaffold::Actions::Core
+        include ActiveScaffold::FormAssociations
         active_scaffold_config.actions.each do |mod|
           name = mod.to_s.camelize
           include eval("ActiveScaffold::Actions::#{name}") if ActiveScaffold::Actions.const_defined? name

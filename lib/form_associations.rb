@@ -1,36 +1,45 @@
 module ActiveScaffold
   module FormAssociations
-    # Provides validation and template for displaying association in sub-list
-    def add_association
-      @association = active_scaffold_config.model.reflect_on_association(params[:id].to_sym)
-      @record = find_or_create_for_params(params[@association.klass.to_s.underscore], @association.klass)
-
-      render(:action => 'add_association', :layout => false)
-    end
-
     protected
 
-    # Finds or creates ActiveRecord objects for the associations params (derived from the request
-    # params using split_record_params) and tacks them onto the given parent AR model.
-    def build_associations(parent_record, columns, associations_params = {})
-      return if associations_params.empty?
-
+    # Takes attributes (as from params[:record]) and applies them to the parent_record. Also looks for
+    # association attributes and attempts to instantiate them as associated objects.
+    #
+    # This is a secure way to apply params to a record, because it's based on a loop over the columns
+    # set. The columns set will not yield unauthorized columns, and it will not yield unregistered columns.
+    # this very effectively replaces the params[:record] filtering i set up before.
+    def update_record_from_params(parent_record, columns, attributes)
       columns.each do |column|
-        next unless column.association
-        next if column.ui_type == :select
+        next unless attributes.has_key? column.name
+        value = attributes[column.name]
 
-        values = associations_params[column.name]
-        if [:has_one, :belongs_to].include? column.association.macro
-          record_params = values
-          record = find_or_create_for_params(record_params, column.association.klass)
-          eval "parent_record.#{column.association.name} = record" unless record.nil?
+        # convert the value, possibly by instantiating associated objects
+        value = if column.singular_association? and column.ui_type == :select
+          column.association.klass.find(value)
+
+        elsif column.singular_association?
+          hash = value
+          record = find_or_create_for_params(hash, column.association.klass)
+          record_columns = active_scaffold_config_for(column.association.klass).send(record.new_record? ? :create : :update).columns
+          update_record_from_params(record, record_columns, hash)
+          record
+
+        elsif column.plural_association?
+          value.collect do |key_value_pair|
+            hash = key_value_pair[1]
+            record = find_or_create_for_params(hash, column.association.klass)
+            record_columns = active_scaffold_config_for(column.association.klass).send(record.new_record? ? :create : :update).columns
+            update_record_from_params(record, record_columns, hash)
+            record
+          end
+
         else
-          records = values.values.collect do |record_params|
-            find_or_create_for_params(record_params, column.association.klass)
-          end.compact rescue []
-          eval "parent_record.#{column.association.name} = records"
+          value
         end
+
+        parent_record.send("#{column.name}=", value)
       end
+      parent_record
     end
 
     # Attempts to create or find an instance of klass (which must be an ActiveRecord object) from the
@@ -39,29 +48,12 @@ module ActiveScaffold
     def find_or_create_for_params(params, klass)
       return nil if params.empty?
 
-      record = nil
       if params.has_key? :id
-        record = klass.find(params[:id]) unless params[:id].empty?
+        return find_if_allowed(params[:id], 'update', klass)
       else
-        # TODO We need some security checks in here so we don't create new objects when you are not authorized
-        attribute_params, associations_params = split_record_params(params,klass)
-        record = klass.new(attribute_params)
-        build_associations(record, associations_params) unless associations_params.empty?
+        # TODO check that user is authorized to create a record of this klass
+        return klass.new
       end
-      record
-    end
-
-    # Splits a params hash into two hashes: one of all values that map to an attribute on the given class (klass)
-    # and one all the values that map to associations (belongs_to, has_many, etc) on the class.
-    def split_record_params(params, klass)
-      attribute_params, associations_params = params.dup, {}
-      klass.reflect_on_all_associations.each do |association|
-        if attribute_params.has_key?(association.name)
-          value = attribute_params.delete(association.name)
-          associations_params[association.name] = value
-        end
-      end
-      return attribute_params, associations_params
     end
   end
 end

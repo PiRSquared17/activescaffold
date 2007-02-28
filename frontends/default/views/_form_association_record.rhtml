@@ -1,12 +1,10 @@
 <%
-scope ||= "[#{@record.class.to_s.underscore}]"
 config = active_scaffold_config_for(@record.class)
 columns = @record.new_record? ? config.create.columns : config.update.columns
-record_id ||= @record.new_record? ? generate_temporary_id : @record.id
 %>
 <ol>
 <% unless @record.new_record? %>
-<input type="hidden" name="<%= "record#{scope}[#{record_id}][id]" -%>" value="<%= @record.id -%>" />
+<input type="hidden" name="<%= "record#{scope}[id]" -%>" value="<%= @record.id -%>" />
 <% end -%>
 <% columns.each :flatten => true do |column| %>
   <%
@@ -15,7 +13,7 @@ record_id ||= @record.new_record? ? generate_temporary_id : @record.id
   column.ui_type = :select if column.association
   -%>
   <li class="form-element">
-    <%= render_form_field_for_column(column, :scope => "#{scope}[#{record_id}]") %>
+    <%= render_form_field_for_column(column, :scope => scope) %>
   </li>
 <% end -%>
   <li><%= link_to_function 'Remove', 'this.up(".association-record").remove()' -%></li>

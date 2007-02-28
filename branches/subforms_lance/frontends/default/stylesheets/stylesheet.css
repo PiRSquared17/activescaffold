@@ -550,3 +550,28 @@ font-size: 12px;
 padding: 1px;
 border: solid 1px #1F7F00;
 }
+
+/* Sub-Form Styling
+   ============================== */
+.active-scaffold form ul,
+.active-scaffold form li {
+list-style: none;
+}
+
+.active-scaffold form .association-record {
+padding: 0px 0px 3px 3px;
+margin-bottom: 3px;
+border-color: #666;
+border-style: solid;
+border-width: 0px 0px 1px 1px;
+background-color: #aea;
+}
+
+.active-scaffold form .association-record-new {
+background-color: #eea;
+}
+
+.active-scaffold form .association-record ol {
+overflow: auto;
+zoom: 1;
+}

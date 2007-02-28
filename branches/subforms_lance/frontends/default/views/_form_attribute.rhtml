@@ -5,14 +5,14 @@ name = scope ? "record#{scope}[#{column.name}]" : "record[#{column.name}]"
 
 <label for="<%= "record_#{column.name}" %>"><%= column.label %></label>
 <%= if override_form_field?(column)
-  send(override_form_field(column), record)
+  send(override_form_field(column), @record)
 elsif !column.association.nil? and column.ui_type == :select
-  select(record, column.name, column.association.klass.find(:all).collect {|r| [r.to_label, r.id]}, {}, { :name => name })
+  select(:record, column.name, column.association.klass.find(:all).collect {|r| [r.to_label, r.id]}, {}, { :name => name })
 else
   options = { :name => name }
   text_options = options.merge( :autocomplete => "off", :size => 20, :class => 'text-input' )
   if column.virtual?
-    text_field(record, column.name, text_options)
+    text_field(:record, column.name, text_options)
   elsif [:text, :string, :integer, :float, :decimal].include?(column.column.type)
     input(:record, column.name, text_options)
   else

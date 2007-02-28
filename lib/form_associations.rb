@@ -9,7 +9,7 @@ module ActiveScaffold
     # set. The columns set will not yield unauthorized columns, and it will not yield unregistered columns.
     # this very effectively replaces the params[:record] filtering i set up before.
     def update_record_from_params(parent_record, columns, attributes)
-      columns.each do |column|
+      columns.each :flatten => true do |column|
         next unless attributes.has_key? column.name
         value = attributes[column.name]
 

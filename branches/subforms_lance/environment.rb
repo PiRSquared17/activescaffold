@@ -25,7 +25,6 @@ require 'localization'
 require 'form_associations'
 
 require 'helpers/active_scaffold_helpers'
-require 'helpers/active_scaffold_view_helpers'
 require 'helpers/id_helpers'
 require 'helpers/list_helpers'
 require 'helpers/form_helpers'
@@ -63,10 +62,10 @@ autoload_dir "#{File.dirname __FILE__}/lib/data_structures", "ActiveScaffold::Da
 ##
 
 ActionController::Base.send(:include, ActiveScaffold)
-ActionController::Base.send(:helper, ActionView::Helpers::ActiveScaffoldHelpers)
-ActionController::Base.send(:helper, ActionView::Helpers::ActiveScaffoldIdHelpers)
+ActionController::Base.send(:include, ActionView::Helpers::ActiveScaffoldIdHelpers)
 ActionController::Base.send(:include, Localization)
-ActionView::Base.send(:include, ActionView::Helpers::ActiveScaffoldViewHelpers)
+ActionView::Base.send(:include, ActionView::Helpers::ActiveScaffoldHelpers)
+ActionView::Base.send(:include, ActionView::Helpers::ActiveScaffoldIdHelpers)
 ActionView::Base.send(:include, ActionView::Helpers::ActiveScaffoldListHelpers)
 ActionView::Base.send(:include, ActionView::Helpers::ActiveScaffoldFormHelpers)
 

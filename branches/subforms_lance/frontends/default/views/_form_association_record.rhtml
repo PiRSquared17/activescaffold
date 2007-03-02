@@ -8,7 +8,7 @@ columns = @record.new_record? ? config.create.columns : config.update.columns
 <% end -%>
 <% columns.each :flatten => true do |column| %>
   <%
-  next if column.association and column.association.klass == parent_record.class
+  next if column.association and (column.association.klass == parent_record.class or !column.singular_association?)
   column = column.clone
   column.ui_type = :select if column.association
   -%>

@@ -1,3 +1,4 @@
+#labels Type-Localization
 Localization.define('bg_BG') do |lang| 
   lang['ARE_YOU_SURE'] ||= 'Сигурни ли сте?' 
 

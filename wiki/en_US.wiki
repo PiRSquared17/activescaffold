@@ -1,3 +1,4 @@
+{{{
 Localization.define('en_US') do |lang|
   # Used to confirm an action. Presently used for Delete.
   lang['ARE_YOU_SURE'] ||= 'Are you sure?'
@@ -77,3 +78,4 @@ Localization.define('en_US') do |lang|
   # For flash[:info] feedback after updating a record (in HTML mode)
   lang['UPDATED %s'] ||= 'Updated %s'
 end
+}}}

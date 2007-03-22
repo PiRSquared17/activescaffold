@@ -49,7 +49,7 @@ module ActiveScaffold::DataStructures
     end
 
     # supported options:
-    #   * :select will display a simple <select> (or collection of checkboxes) on the form to (dis)associate records
+    #   * :select on a :belongs_to or :has_one association will display a select control in the form
     #   * :crud (default) will display a sub-form
     attr_writer :ui_type
     def ui_type
@@ -116,9 +116,6 @@ module ActiveScaffold::DataStructures
     def plural_association?
       self.association and [:has_many, :has_and_belongs_to_many].include? self.association.macro
     end
-    def through_association?
-      self.association and self.association.options[:through]
-    end
 
     # an interpreted property. the column is virtual if it isn't from the active record model or any associated models
     def virtual?
@@ -160,7 +157,7 @@ module ActiveScaffold::DataStructures
     # just the field (not table.field)
     def field_name
       return nil if virtual?
-      column ? @active_record_class.connection.quote_column_name(column.name) : association.primary_key_name
+      column ? column.name : association.primary_key_name
     end
 
     protected

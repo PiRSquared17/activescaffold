@@ -4,6 +4,7 @@ module ActionView::Helpers
     def record_is_allowed_for_link(record, link)
       return true unless record.respond_to? link.security_method
       current_user = controller.send(active_scaffold_config.current_user_method) rescue nil
+      return true unless current_user #if there's no current_user, then don't check security
       return record.send(link.security_method, current_user)
     end
 
@@ -20,10 +21,14 @@ module ActionView::Helpers
       html_options = {:class => link.action}
       html_options[:confirm] = link.confirm if link.confirm?
       html_options[:position] = link.position if link.position and link.inline?
-      html_options[:class] += ' action' if link.inline?
-      html_options[:id] = action_link_id(url_options.clone)
+      html_options[:id] = action_link_id(url_options)
 
-      link_to link.label, url_options, html_options
+      if link.page?
+        link_to link.label, url_options, html_options
+      elsif link.inline?
+        html_options[:class] += ' action'
+        link_to link.label, url_options, html_options
+      end
     end
 
     def pagination_ajax_link(page_number, params)

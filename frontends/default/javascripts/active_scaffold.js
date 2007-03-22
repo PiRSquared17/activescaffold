@@ -3,11 +3,6 @@ if (typeof Prototype == 'undefined')
   warning = "ActiveScaffold Error: Prototype could not be found. Please make sure that your application's layout includes prototype.js (e.g. <%= javascript_include_tag :defaults %>) *before* it includes active_scaffold.js (e.g. <%= active_scaffold_includes %>).";
   alert(warning);
 }
-if (Prototype.Version.substring(0, 8) == '1.5.0_rc')
-{
-  warning = "ActiveScaffold Error: Prototype 1.5.0_rc is not supported. Please update prototype.js (rake rails:update:javascripts).";
-  alert(warning);
-}
 
 /*
  * Simple utility methods
@@ -234,9 +229,9 @@ ActiveScaffold.ActionLink.Abstract.prototype = {
         if (this.position) {
           this.insert(request.responseText);
           if (this.hide_target) this.target.hide();
-        } else {
-          request.evalResponse();
-        }
+        }	else {
+					request.evalResponse();
+				}
       }.bind(this),
 
       onFailure: function(request) {
@@ -362,7 +357,7 @@ ActiveScaffold.Actions.Table = Class.create();
 ActiveScaffold.Actions.Table.prototype = Object.extend(new ActiveScaffold.Actions.Abstract(), {
   instantiate_link: function(link) {
     var l = new ActiveScaffold.ActionLink.Table(link, this.target, this.loading_indicator);
-    if (l.position) l.url = l.url.append_params({adapter: '_list_inline_adapter'});
+    l.url = l.url.append_params({adapter: '_list_inline_adapter'});
     return l;
   }
 });

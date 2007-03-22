@@ -5,14 +5,14 @@ module ActiveScaffold::Actions
     # this method is for html mode. it provides "the missing action" (http://thelucid.com/articles/2006/07/26/simply-restful-the-missing-action).
     # it also gives us delete confirmation for html mode. woo!
     def delete
-      return unless insulate { do_delete }
+      insulate { do_delete }
       render :action => 'delete'
     end
 
     def destroy
       return redirect_to(params.merge(:action => :delete)) if request.get?
 
-      return unless insulate { do_destroy }
+      insulate { do_destroy }
 
       @successful = successful?
       respond_to do |type|

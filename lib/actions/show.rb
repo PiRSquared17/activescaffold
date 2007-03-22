@@ -2,7 +2,7 @@ module ActiveScaffold::Actions
   module Show
     include ActiveScaffold::Actions::Base
     def show
-      return unless insulate { do_show }
+      insulate { do_show }
 
       @successful = successful?
       respond_to do |type|

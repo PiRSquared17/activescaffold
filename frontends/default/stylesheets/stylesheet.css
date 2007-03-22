@@ -75,20 +75,18 @@ opacity: 0.5;
 }
 
 .active-scaffold-header div.actions a.new,
-.active-scaffold-header div.actions a.new_existing,
 .active-scaffold-header div.actions a.show_search {
 padding-left: 19px;
 background-position: 1px 50%;
 background-repeat: no-repeat;
 }
 
-.active-scaffold-header div.actions a.new,
-.active-scaffold-header div.actions a.new_existing {
-background-image: url(../../../images/active_scaffold/default/add.gif);
+.active-scaffold-header div.actions a.new {
+background-image: url(/images/active_scaffold/default/add.gif);
 }
 
 .active-scaffold-header div.actions a.show_search {
-background-image: url(../../../images/active_scaffold/default/magnifier.png);
+background-image: url(/images/active_scaffold/default/magnifier.png);
 }
 
 .active-scaffold-header div.actions a:hover {
@@ -143,17 +141,17 @@ background-color: #333;
 
 .active-scaffold th.asc a,
 .active-scaffold th.asc a:hover {
-background: #333 url(../../../images/active_scaffold/default/arrow_up.gif) right 50% no-repeat;
+background: #333 url(/images/active_scaffold/default/arrow_up.gif) right 50% no-repeat;
 }
 
 .active-scaffold th.desc a,
 .active-scaffold th.desc a:hover {
-background: #333 url(../../../images/active_scaffold/default/arrow_down.gif) right 50% no-repeat;
+background: #333 url(/images/active_scaffold/default/arrow_down.gif) right 50% no-repeat;
 }
 
 .active-scaffold th.loading a,
 .active-scaffold th.loading a:hover {
-background: #333 url(../../../images/active_scaffold/default/indicator-small.gif) right 50% no-repeat;
+background: #333 url(/images/active_scaffold/default/indicator-small.gif) right 50% no-repeat;
 }
 
 /* Table :: Record Rows
@@ -237,26 +235,7 @@ float: right;
 text-indent: -4000px;
 width: 16px;
 height: 17px;
-background: url(../../../images/active_scaffold/default/close.gif) 0 0 no-repeat;
-}
-
-/* Show
-   ============================= */
-.inline-adapter-cell dt
-{
-width: 12em;
-float: left;
-margin: 0px;
-padding: .5em;
-font-weight: bold;
-clear: both;
-}
-
-.inline-adapter-cell dd
-{
-float: left;
-margin: 0px;
-padding: .5em;
+background: url(/images/active_scaffold/default/close.gif) 0 0 no-repeat;
 }
 
 /* Nested
@@ -572,13 +551,6 @@ padding: 1px;
 border: solid 1px #1F7F00;
 }
 
-.active-scaffold .checkbox-list {
-height: 90px;
-overflow: auto;
-padding: 2px;
-border: 1px solid #666;
-}
-
 /* Form :: Sub-Sections
    ============================== */
 
@@ -611,16 +583,12 @@ background: none;
 .active-scaffold .sub-form table th {
 font: normal 10px verdana, sans-serif;
 color: #555;
-padding: 0 5px 0 1px;
+padding: 0 0 0 1px;
 background: none;
 }
 
 .active-scaffold .sub-form label {
 display: none;
-}
-
-.active-scaffold .sub-form .checkbox-list label {
-display: block;
 }
 
 .active-scaffold .sub-form table td {
@@ -656,7 +624,7 @@ height: 16px;
 padding: 0;
 width: 16px;
 text-indent: -4000px;
-background: url(../../../images/active_scaffold/default/cross.png) 0 0 no-repeat;
+background: url(/images/active_scaffold/default/cross.png) 0 0 no-repeat;
 }
 
 .active-scaffold .sub-form .locked a.destroy {

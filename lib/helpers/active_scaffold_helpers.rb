@@ -36,10 +36,7 @@ module ActionView::Helpers
       # and wow. no we don't want to propagate :record.
       # :commit is a special rails variable for form buttons
       blacklist = [:adapter, :position, :sort, :sort_direction, :page, :record, :commit, :_method]
-      unless @params_for
-        @params_for = params.clone.delete_if { |key, value| blacklist.include? key.to_sym if key }
-        @params_for[:controller] = '/' + @params_for[:controller] unless @params_for[:controller].first(1) == '/' # for namespaced controllers
-      end
+      @params_for ||= params.clone.delete_if { |key, value| blacklist.include? key.to_sym if key }
       @params_for.merge(options)
     end
 

@@ -11,7 +11,7 @@ module ActiveScaffold::Actions
     def record_allowed_for_action?(record, action)
       current_user = self.send(active_scaffold_config.current_user_method) rescue nil
       security_method = "#{action}_authorized?"
-      return record.respond_to?(security_method) ? record.send(security_method, current_user) : true
+      return (record.respond_to?(security_method) and current_user) ? record.send(security_method, current_user) : true
     end
 
     # Takes attributes (as from params[:record]) and applies them to the parent_record. Also looks for
@@ -21,59 +21,42 @@ module ActiveScaffold::Actions
     # set. The columns set will not yield unauthorized columns, and it will not yield unregistered columns.
     # this very effectively replaces the params[:record] filtering i set up before.
     def update_record_from_params(parent_record, columns, attributes)
-      action = parent_record.new_record? ? 'create' : 'update'
-      return parent_record unless parent_record.new_record? or record_allowed_for_action?(parent_record, action)
-
-      multi_parameter_attributes = {}
-      attributes.each do |k, v|
-        next unless k.include? '('
-        column_name = k.split('(').first.to_sym
-        multi_parameter_attributes[column_name] ||= []
-        multi_parameter_attributes[column_name] << [k, v]
-      end
+      return parent_record unless parent_record.new_record? or record_allowed_for_action?(parent_record, 'update')
 
       columns.each :flatten => true do |column|
-        if multi_parameter_attributes.has_key? column.name
-          parent_record.send(:assign_multiparameter_attributes, multi_parameter_attributes[column.name])
-        elsif attributes.has_key? column.name
-          value = attributes[column.name]
+        next unless attributes.has_key? column.name
+        value = attributes[column.name]
 
-          # convert the value, possibly by instantiating associated objects
-          value = if column.ui_type == :select
-            ids = if column.singular_association?
-              value[:id]
-            else
-              value.values.collect {|hash| hash[:id]}
-            end
-            (ids and not ids.empty?) ? column.association.klass.find(ids) : nil
+        # convert the value, possibly by instantiating associated objects
+        value = if column.singular_association? and column.ui_type == :select
+          column.association.klass.find(value)
 
-          elsif column.singular_association?
-            hash = value
+        elsif column.singular_association?
+          hash = value
+          record = find_or_create_for_params(hash, column.association.klass, parent_record.send("#{column.name}"))
+          if record
+            record_columns = active_scaffold_config_for(column.association.klass).subform.columns
+            update_record_from_params(record, record_columns, hash)
+          end
+          record
+
+        elsif column.plural_association?
+          collection = value.collect do |key_value_pair|
+            hash = key_value_pair[1]
             record = find_or_create_for_params(hash, column.association.klass, parent_record.send("#{column.name}"))
             if record
               record_columns = active_scaffold_config_for(column.association.klass).subform.columns
               update_record_from_params(record, record_columns, hash)
             end
             record
-
-          elsif column.plural_association?
-            collection = value.collect do |key_value_pair|
-              hash = key_value_pair[1]
-              record = find_or_create_for_params(hash, column.association.klass, parent_record.send("#{column.name}"))
-              if record
-                record_columns = active_scaffold_config_for(column.association.klass).subform.columns
-                update_record_from_params(record, record_columns, hash)
-              end
-              record
-            end
-            collection.compact
-
-          else
-            value
           end
+          collection.compact
 
-          parent_record.send("#{column.name}=", value) unless column.through_association?
+        else
+          value
         end
+
+        parent_record.send("#{column.name}=", value)
       end
       parent_record
     end
@@ -82,7 +65,7 @@ module ActiveScaffold::Actions
     # request parameters given. If params[:id] exists it will attempt to find an existing object
     # otherwise it will build a new one.
     def find_or_create_for_params(params, klass, current)
-      return nil if attributes_hash_is_empty?(params, klass)
+      return nil if is_empty? params
 
       if params.has_key? :id
         # modifying the current object of a singular association
@@ -101,12 +84,9 @@ module ActiveScaffold::Actions
       end
     end
 
-    def attributes_hash_is_empty?(hash, klass)
+    def is_empty?(hash)
       hash.all? do |key,value|
-        # booleans and datetimes will always have a value. so we ignore them when checking whether the hash is empty.
-        # this could be a bad idea. but the current situation (excess record entry) seems worse.
-        next true if klass.columns_hash[key.to_s] and [:boolean, :datetime].include?(klass.columns_hash[key.to_s].type)
-        value.is_a?(Hash) ? attributes_hash_is_empty?(value, klass) : value.empty?
+        value.is_a?(Hash) ? is_empty?(value) : value.empty?
       end
     end
 
@@ -131,21 +111,18 @@ module ActiveScaffold::Actions
             type.html { return_to_main }
             type.js do
               flash[:error] = error_object.to_s;
-              params[:adapter] = nil
-              render :action => 'insulated_exception.rjs', :layout => false, :status => 500
+              render :update do |page| # render page update
+                page.replace_html active_scaffold_messages_id, :partial => 'messages'
+              end
             end
             type.xml { render :xml => error_object.to_xml, :content_type => Mime::XML, :status => 500}
             type.json { render :text => error_object.to_json, :content_type => Mime::JSON, :status => 500}
             type.yaml { render :text => error_object.to_yaml, :content_type => Mime::YAML, :status => 500}
           end
-
-          return false
         end
       else
         yield
       end
-
-      return true
     end
 
     # Should the do_xxxxx call be wrapped by insulate to catch errors
@@ -198,6 +175,15 @@ module ActiveScaffold::Actions
       params.reject {|key, value| [:controller, :action, :id].include?(key.to_sym)}.each do |key, value|
         next unless active_scaffold_config.model.column_names.include?(key)
         conditions = merge_conditions(conditions, ["#{key.to_s} = ?", value])
+      end
+      conditions
+    end
+
+    # Builds search conditions based on the current scaffold constraints. This is used for embedded scaffolds (e.g. render :active_scaffold => 'users').
+    def conditions_from_constraints
+      conditions = nil
+      active_scaffold_constraints.each do |k, v|
+        conditions = merge_conditions(conditions, ["#{k.to_s} = ?", v])
       end
       conditions
     end

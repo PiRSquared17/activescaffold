@@ -1,12 +1,11 @@
-<% readonly = (@record.readonly? or not record_allowed_for_action?(@record, 'update')) -%>
 <% active_scaffold_config_for(@record.class).subform.columns.each :flatten => true do |column| %>
   <%
-  next if column.association and (column.association.klass == parent_record.class)
+  next if column.association and (column.association.klass == parent_record.class or !column.singular_association?)
   column = column.clone
   column.ui_type = :select if column.association
   -%>
   <td>
-    <% unless readonly -%>
+    <% if record_allowed_for_action? @record, 'update' -%>
       <%= render :partial => form_partial_for_column(column), :locals => { :column => column, :scope => scope } -%>
     <% else -%>
       <p><%= @record.send(column.name) -%></p>
@@ -14,7 +13,7 @@
   </td>
 <% end -%>
   <td class="actions">
-    <%= link_to_function _('REMOVE_BUTTON'), 'this.up(".association-record").remove()', { :class => "destroy" } -%>
+    <%= link_to_function 'Remove', 'this.up(".association-record").remove()', { :class => "destroy" } -%>
     <% unless @record.new_record? %>
     <input type="hidden" name="<%= "record#{scope}[id]" -%>" value="<%= @record.id -%>" />
     <% end -%>

@@ -10,7 +10,7 @@ module ActiveScaffold::Actions
     end
 
     def new
-      return unless insulate { do_new }
+      insulate { do_new }
 
       respond_to do |type|
         type.html do
@@ -27,7 +27,7 @@ module ActiveScaffold::Actions
     end
 
     def create
-      return unless insulate { do_create }
+      insulate { do_create }
 
       respond_to do |type|
         type.html do
@@ -58,22 +58,12 @@ module ActiveScaffold::Actions
     end
 
     def do_create
-      begin
-        active_scaffold_config.model.transaction do
-          @record = update_record_from_params(active_scaffold_config.model.new, active_scaffold_config.create.columns, params[:record])
-          apply_constraints_to_record(@record)
-          before_create_save(@record)
-          @record.save! and @record.save_associated!
-          after_create_save(@record)
-        end
-      rescue ActiveRecord::RecordInvalid
+      active_scaffold_config.model.transaction do
+        @record = update_record_from_params(active_scaffold_config.model.new, active_scaffold_config.create.columns, params[:record])
+        active_scaffold_constraints.each { |k, v| @record.send("#{k}=", v) }
+        # TODO: make this a "recursive" save
+        @record.save
       end
     end
-
-    # override this method if you want to interject data in the @record (or its associated objects) before the save
-    def before_create_save(record); end
-
-    # override this method if you want to do something after the save
-    def after_create_save(record); end
   end
 end

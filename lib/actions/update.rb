@@ -10,7 +10,7 @@ module ActiveScaffold::Actions
     end
 
     def edit
-      return unless insulate { do_edit }
+      insulate { do_edit }
 
       respond_to do |type|
         type.html do
@@ -27,7 +27,7 @@ module ActiveScaffold::Actions
     end
 
     def update
-      return unless insulate { do_update }
+      insulate { do_update }
 
       respond_to do |type|
         type.html do
@@ -59,17 +59,11 @@ module ActiveScaffold::Actions
 
     def do_update
       @record = find_if_allowed(params[:id], 'update')
-      begin
-        active_scaffold_config.model.transaction do
-          @record = update_record_from_params(@record, active_scaffold_config.update.columns, params[:record])
-          before_update_save(@record)
-          @record.save! and @record.save_associated!
-        end
-      rescue ActiveRecord::RecordInvalid
+      active_scaffold_config.model.transaction do
+        @record = update_record_from_params(@record, active_scaffold_config.update.columns, params[:record])
+        # TODO: make this a "recursive" save
+        @record.save
       end
     end
-
-    # override this method if you want to interject data in the @record (or its associated objects) before the save
-    def before_update_save(record); end
   end
 end

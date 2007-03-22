@@ -16,9 +16,8 @@ module ActionView::Helpers
     def column_renders_as(column)
       if column.is_a? ActiveScaffold::DataStructures::ActionColumns
         return :subsection
-      elsif column.association.nil? or column.ui_type == :select or !active_scaffold_config_for(column.association.klass).actions.include?(:subform)
+      elsif column.association.nil? or column.ui_type == :select
         return :field
-      #TODO 2007-02-23 (EJM) Level=0 - Need to check if they have the security to CRUD the association column?
       else
         return :subform
       end
@@ -27,57 +26,15 @@ module ActionView::Helpers
     def form_partial_for_column(column)
       if override_form_field_partial?(column)
         override_form_field_partial(column)
-      elsif column_renders_as(column) == :field or override_form_field?(column)
+      elsif column.association.nil? || override_form_field?(column)
         "form_attribute"
-      elsif column_renders_as(column) == :subform
-        "form_association"
-      end
-    end
-
-    def form_column(column, scope = nil)
-      name = scope ? "record#{scope}[#{column.name}]" : "record[#{column.name}]"
-      if override_form_field?(column)
-        send(override_form_field(column), @record)
-      elsif column.singular_association?
-        select_options = [[_('_SELECT_'),nil]]
-        # Need to add as options all current associations for this record
-        associated = @record.send(column.association.name)
-        select_options += [[ associated.to_label, associated.id ]] unless associated.nil?
-        select_options += options_for_association(column.association)
-        selected = associated.nil? ? nil : associated.id
-        select(:record, column.name, select_options.uniq, { :selected => selected }, { :name => "#{name}[id]" })
-      elsif column.plural_association?
-        html = '<div class="checkbox-list">'
-
-        associated = @record.send(column.association.name).collect {|r| r.id}
-        options = column.association.klass.find(:all).collect {|r| [r.to_label, r.id]}.sort_by {|o| o.first}
-        return 'no options' if options.empty?
-
-        options.each_with_index do |option, i|
-          label, id = option
-          this_name = "#{name}[#{i}][id]"
-          html << "<label for='#{this_name}'>"
-          html << check_box_tag(this_name, id, associated.include?(id))
-          html << label
-          html << "</label>"
+      elsif !column.association.nil?
+        if column.singular_association? and column.ui_type == :select
+          "form_attribute"
+        #TODO 2007-02-23 (EJM) Level=0 - Need to check if they have the security to CRUD the association column?
+        else
+          "form_association"
         end
-
-        html << '</div>'
-        html
-      else
-        options = { :name => name }
-        active_scaffold_input(column, options)
-      end
-    end
-
-    def active_scaffold_input(column, options)
-      text_options = options.merge( :autocomplete => "off", :size => 20, :class => 'text-input' )
-      if column.virtual?
-        text_field(:record, column.name, text_options)
-      elsif [:text, :string, :integer, :float, :decimal].include?(column.column.type)
-        input(:record, column.name, text_options)
-      else
-        input(:record, column.name, options)
       end
     end
 
@@ -112,7 +69,7 @@ module ActionView::Helpers
           available_records = association.klass.find(:all)
       end
       available_records ||= []
-      available_records.sort{|a,b| a.to_label <=> b.to_label}.collect { |model| [ model.to_label, model.id ] }
+      available_records.collect { |model| [ model.to_label, model.id ] }
     end
 
     def generate_temporary_id
@@ -122,7 +79,7 @@ module ActionView::Helpers
     # Turns [[label, value]] into <option> tags
     # Takes optional parameter of :include_blank
     def option_tags_for(select_options, options = {})
-      select_options.insert(0,[_('_SELECT_'),nil]) if options[:include_blank]
+      select_options.insert(0,["- select -",nil]) if options[:include_blank]
       select_options.collect do |option|
         label, value = option[0], option[1]
         value.nil? ? "<option value="">#{label}</option>" : "<option value=\"#{value}\">#{label}</option>"

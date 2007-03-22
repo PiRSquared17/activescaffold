@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), '../test_helper.rb')
+require 'test/test_helper'
 
 class ActionLinksTest < Test::Unit::TestCase
   def setup

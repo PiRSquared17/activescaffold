@@ -6,9 +6,9 @@ module ActionController
         if @options.delete :active_scaffold
           logger.info "ActiveScaffold: extending RESTful routes for #{@plural}"
           @options[:collection] ||= {}
-          @options[:collection].merge! :show_search => :get, :update_table => :get, :edit_associated => :get, :list => :get
+          @options[:collection].merge! :show_search => :get, :update_table => :get
           @options[:member] ||= {}
-          @options[:member].merge! :row => :get, :nested => :get, :edit_associated => :get, :add_association => :get
+          @options[:member].merge! :row => :get, :nested => :get, :edit_associated => :get
         end
         @options
       end

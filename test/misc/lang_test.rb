@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), '../test_helper.rb')
+require 'test/test_helper'
 
 class LocalizationTest < Test::Unit::TestCase
 
@@ -7,13 +7,13 @@ class LocalizationTest < Test::Unit::TestCase
     ## test no language specified
     ##
     assert_equal "dutch", _("dutch")
-    assert_equal "Create", _("CREATE_BUTTON")
+    assert_equal "Create", _("CREATE")
     ActiveScaffold::Config::Core.configure do |c| 
       c.lang = "nl_NL" 
     end
     ##
     ## test language specified
     ##
-    assert_equal "Toevoegen", _("CREATE_BUTTON")
+    assert_equal "Toevoegen", _("CREATE")
   end
 end

@@ -1,25 +1,6 @@
-require 'exceptions'
 ##
 ## Check for dependencies
 ##
-
-version = Rails::VERSION::STRING.split(".")
-if version[0] < "1" or (version[0] == "1" and version[1] < "2")
-  message = <<-EOM
-    ************************************************************************
-    Rails 1.2.1 or greater is required. Please remove ActiveScaffold or
-    upgrade Rails. After you upgrade Rails, be sure to run
-
-    > rake rails:update:javascripts
-
-    to get the newest prototype.js.
-    ************************************************************************
-  EOM
-  ActionController::Base::logger.error message
-  puts message
-  raise ActiveScaffold::DependencyFailure
-end
-
 begin
   Paginator rescue require('paginator')
 end
@@ -31,7 +12,6 @@ require 'active_scaffold'
 require 'configurable'
 require 'finder'
 require 'localization'
-require 'constraints'
 
 require 'helpers/active_scaffold_helpers'
 require 'helpers/id_helpers'
@@ -50,15 +30,9 @@ require 'extensions/resources'
 ##
 def autoload_dir(directory, namespace)
   Dir.entries(directory).each do |file|
-    next unless file =~ /\.rb$/
-    if file =~ /^[a-z_]+\.rb$/
-      constant = File.basename(file, '.rb').camelcase
-      eval(namespace).autoload constant, File.join(directory, file)
-    else
-      message = "ActiveScaffold: could not autoload #{File.join(directory, file)}"
-      RAILS_DEFAULT_LOGGER.error message
-      puts message
-    end
+    next if file =~ /^\./
+    constant = File.basename(file, '.rb').camelcase
+    eval(namespace).autoload constant, File.join(directory, file)
   end
 end
 

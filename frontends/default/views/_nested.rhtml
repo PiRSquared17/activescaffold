@@ -1,23 +1,14 @@
 <h4>&nbsp;</h4>
 <%
-  # This assumes that the association is included as a column in the active_scaffold_config.columns collection
-  associated_columns = []
-  associated_columns = params[:associations].split(" ") unless params[:associations].nil?
-  unless associated_columns.empty?
-    parent_id = params[:id]
-    associated_columns.each do | column_name |
-      column = active_scaffold_config.columns[column_name]
-      association = column.association
-      begin
-        controller, controller_path = active_scaffold_controller_for(association.klass)
-      rescue ActiveScaffold::ControllerNotFound => error %>
-        <%= "#{error.class} - #{error.message}"%>
-<%    else %>
-    <%= render :active_scaffold => controller_path,
-               :constraints => { association.reverse => parent_id},
-               :label => active_scaffold_config_for(association.klass).label + _("FOR") + format_column(@record.to_label),
-               :params => {:nested => true, :parent_column => column_name, :parent_model => association.active_record} %>
-<%    end
-    end
+	models = []
+	models = params[:associations].split(" ") unless params[:associations].nil?
+	unless models.empty?
+		parent_id = params[:id]
+		models.each do | model_name |
+			controller, controller_path = active_scaffold_controller_for(model_name, params[:controller])
+%>
+		<%= render :active_scaffold => controller_path, :constraints => {active_scaffold_config.columns[model_name].association.primary_key_name.to_sym => parent_id}, :label => active_scaffold_config_for(model_name).label + _("FOR") + active_scaffold_config.label %>
+<%
+		end
   end
 %>

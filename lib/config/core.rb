@@ -45,8 +45,8 @@ module ActiveScaffold::Config
     # columns that should be ignored for every model. these should be metadata columns like change dates, versions, etc.
     # values in this array may be symbols or strings.
     cattr_accessor :ignore_columns
-    def ignore_columns=(val)
-      @@ignore_columns = ActiveScaffold::DataStructures::Set.new(*val)
+    def columns=(val)
+      @columns = ActiveScaffold::DataStructures::Set.new(self.model, *val)
     end
     @@ignore_columns = ActiveScaffold::DataStructures::Set.new
 
@@ -55,7 +55,7 @@ module ActiveScaffold::Config
 
     # provides read/write access to the local Actions DataStructure
     attr_reader :actions
-    def actions=(args)
+    def actions=(*args)
       @actions = ActiveScaffold::DataStructures::Actions.new(*args)
     end
 
@@ -118,7 +118,7 @@ module ActiveScaffold::Config
             unless item.is_a? ActiveScaffold::DataStructures::ActionColumns
               begin
                 item = (@columns[item] || ActiveScaffold::DataStructures::Column.new(item.to_sym, @columns.active_record_class))
-                next if constraint_columns.include?(item.name.to_sym) or (item.field_name and constraint_columns.include?(item.field_name.to_sym))
+                next if item.field_name and constraint_columns.include?(item.field_name.to_sym)
               rescue ActiveScaffold::ColumnNotAllowed
                 next
               end
@@ -159,12 +159,8 @@ module ActiveScaffold::Config
       @action_configs ||= {}
       titled_name = name.to_s.camelcase
       underscored_name = name.to_s.underscore.to_sym
-      if ActiveScaffold::Config.const_defined? titled_name
-        if @actions.include? underscored_name
-          return @action_configs[underscored_name] ||= eval("ActiveScaffold::Config::#{titled_name}").new(self)
-        else
-          raise "#{titled_name} is not enabled. Please enable it or remove any references in your configuration (e.g. config.#{underscored_name}.columns = [...])."
-        end
+      if @actions.include? underscored_name and ActiveScaffold::Config.const_defined? titled_name
+        return @action_configs[underscored_name] ||= eval("ActiveScaffold::Config::#{titled_name}").new(self)
       end
       super
     end

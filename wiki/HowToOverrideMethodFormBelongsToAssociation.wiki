@@ -12,8 +12,7 @@ In Helper:
         :conditions => [ "value >= ?", value ], :order => "last_name ASC, first_name ASC").collect { |u| [ last_name[0..20], u.id ] }
   end
 
-  def #{column_name}_form_column(record)
-    select(:record, :#{column_name}, options_filtered_by(:some_value), { :selected => record.#{column_name} }, { :name => "record[#{column_name}][id]" })
+  def #{column_name}_form_column(record, input_name)
+    select(:record, :#{column_name}, options_filtered_by(:some_value), { :selected => record.#{column_name} }, { :name => input_name + "[id]" })
   end
 }}}
-

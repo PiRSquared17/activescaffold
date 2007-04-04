@@ -13,6 +13,7 @@ In Helper:
   end
 
   def #{column_name}_form_column(record, input_name)
-    select(:record, :#{column_name}, options_filtered_by(:some_value), { :selected => record.#{column_name}.id }, { :name => input_name + "[id]" })
+    selected_id = record.#{column_name}.id unless record.#{column_name}.nil?
+    select(:record, :#{column_name}, options_filtered_by(:some_value), { :selected => selected_id }, { :name => input_name + "[id]" })
   end
 }}}

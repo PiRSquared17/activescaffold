@@ -1,5 +1,5 @@
-require 'test/test_helper'
-require 'test/model_stub'
+require File.join(File.dirname(__FILE__), '../test_helper.rb')
+# require 'test/model_stub'
 
 class SetTest < Test::Unit::TestCase
   def setup
@@ -29,6 +29,12 @@ class SetTest < Test::Unit::TestCase
     assert @items.include?(:b)
     @items.exclude [:a, :b]
     assert !@items.include?(:b)
+    assert !@items.include?(:a)
+  end
+
+  def test_remove
+    assert @items.include?(:a)
+    @items.remove 'a'
     assert !@items.include?(:a)
   end
 

@@ -1,6 +1,8 @@
 module ActiveScaffold::Actions
   module List
-    include ActiveScaffold::Actions::Base
+    def self.included(base)
+      base.before_filter :list_authorized?, :only => [:index, :table, :update_table, :row, :list]
+    end
 
     def index
       list
@@ -24,11 +26,11 @@ module ActiveScaffold::Actions
 
     # get just a single row
     def row
-      render :partial => 'list_record', :locals => {:record => find_if_allowed(params[:id], 'list')}
+      render :partial => 'list_record', :locals => {:record => find_if_allowed(params[:id], :read)}
     end
 
     def list
-      insulate { do_list }
+      do_list
 
       respond_to do |type|
         type.html {
@@ -42,9 +44,10 @@ module ActiveScaffold::Actions
 
     protected
 
+    # The actual algorithm to prepare for the list view
     def do_list
       includes_for_list_columns = active_scaffold_config.list.columns.collect{ |c| c.includes }.flatten.uniq.compact
-      self.active_scaffold_includes.concat includes_for_list_columns
+      self.active_scaffold_joins.concat includes_for_list_columns
 
       options = {}
       if accepts? :html, :js
@@ -55,6 +58,12 @@ module ActiveScaffold::Actions
 
       @page = find_page(options)
       @records = @page.items
+    end
+
+    # The default security delegates to ActiveRecordPermissions.
+    # You may override the method to customize.
+    def list_authorized?
+      authorized_for?(:action => :read)
     end
   end
 end

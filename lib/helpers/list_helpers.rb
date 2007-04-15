@@ -1,13 +1,5 @@
 module ActionView::Helpers
   module ActiveScaffoldListHelpers
-    # checks whether the given action_link is allowed for the given record
-    def record_is_allowed_for_link(record, link)
-      return true unless record.respond_to? link.security_method
-      current_user = controller.send(active_scaffold_config.current_user_method) rescue nil
-      return true unless current_user #if there's no current_user, then don't check security
-      return record.send(link.security_method, current_user)
-    end
-
     def render_action_link(link, url_options)
       url_options = url_options.clone
       url_options[:action] = link.action
@@ -21,14 +13,10 @@ module ActionView::Helpers
       html_options = {:class => link.action}
       html_options[:confirm] = link.confirm if link.confirm?
       html_options[:position] = link.position if link.position and link.inline?
-      html_options[:id] = action_link_id(url_options)
+      html_options[:class] += ' action' if link.inline?
+      html_options[:popup] = true if link.popup?
 
-      if link.page?
-        link_to link.label, url_options, html_options
-      elsif link.inline?
-        html_options[:class] += ' action'
-        link_to link.label, url_options, html_options
-      end
+      link_to link.label, url_options, html_options
     end
 
     def pagination_ajax_link(page_number, params)
@@ -36,6 +24,7 @@ module ActionView::Helpers
                 { :url => params.merge(:page => page_number),
                   :before => "Element.show('#{loading_indicator_id(:action => :pagination)}');",
                   :update => active_scaffold_content_id,
+                  :failure => "ActiveScaffold.report_500_response('#{active_scaffold_id}')",
                   :method => :get },
                 { :href => url_for(params.merge(:page => page_number)) })
     end
@@ -67,6 +56,7 @@ module ActionView::Helpers
       classes << column.css_class unless column.css_class.nil?
       classes << 'empty' if column_empty? column_value
       classes << 'sorted' if active_scaffold_config.list.user.sorting.sorts_on?(column)
+      classes << 'numeric' if [:decimal, :float, :integer].include?(column.column.type)
       classes.join(' ')
     end
 
@@ -75,29 +65,41 @@ module ActionView::Helpers
     ##
 
     def render_column(record, column)
-      value = record.send(column.name)
-
-      if column.association.nil? or column_empty?(value)
-        formatted_value = h(format_column(value))
-      else
-        case column.association.macro
-          when :has_one, :belongs_to
-            formatted_value = h(format_column(value.to_label))
-
-          when :has_many, :has_and_belongs_to_many
-            firsts = value.first(4).collect { |v| v.to_label }
-            firsts[3] = '…' if firsts.length == 4
-            formatted_value = h(format_column(firsts.join(', ')))
-        end
-      end
-
       # check for an override helper
       if column_override? column
-        override_method = self.method(column_override(column))
-        formatted_value = override_method.arity < 2 ? override_method.call(formatted_value) : override_method.call(formatted_value, record)
-      end
+        # we only pass the record as the argument. we previously also passed the formatted_value,
+        # but mike perham pointed out that prohibited the usage of overrides to improve on the
+        # performance of our default formatting. see issue #138.
+        send(column_override(column), record)
+      else
+        value = record.send(column.name)
+        if column.association.nil? or column_empty?(value)
+          formatted_value = clean_column_value(format_column(value))
+        else
+          case column.association.macro
+            when :has_one, :belongs_to
+              formatted_value = clean_column_value(format_column(value.to_label))
 
-      formatted_value
+            when :has_many, :has_and_belongs_to_many
+              firsts = value.first(4).collect { |v| v.to_label }
+              firsts[3] = '…' if firsts.length == 4
+              formatted_value = clean_column_value(format_column(firsts.join(', ')))
+          end
+        end
+
+        formatted_value
+      end
+    end
+
+    # There are two basic ways to clean a column's value: h() and sanitize(). The latter is useful
+    # when the column contains *valid* html data, and you want to just disable any scripting. People
+    # can always use field overrides to clean data one way or the other, but having this override
+    # lets people decide which way it should happen by default.
+    #
+    # Why is it not a configuration option? Because it seems like a somewhat rare request. But it
+    # could eventually be an option in config.list (and config.show, I guess).
+    def clean_column_value(v)
+      h(v)
     end
 
     def column_override(column)
@@ -121,11 +123,13 @@ module ActionView::Helpers
     end
 
     def format_time(time)
-      time.strftime("%m/%d/%Y %I:%M %p")
+      format = ActiveSupport::CoreExtensions::Time::Conversions::DATE_FORMATS[:default] || "%m/%d/%Y %I:%M %p"
+      time.strftime(format)
     end
 
     def format_date(date)
-      date.strftime("%m/%d/%Y")
+      format = ActiveSupport::CoreExtensions::Date::Conversions::DATE_FORMATS[:default] || "%m/%d/%Y"
+      date.strftime(format)
     end
 
     def column_empty?(column_value)

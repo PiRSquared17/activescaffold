@@ -6,10 +6,16 @@ module ActiveScaffold::DataStructures
     attr_accessor :name
 
     # the display-name of the column. this will be used, for instance, as the column title in the table and as the field name in the form.
-    attr_accessor :label
+    attr_writer :label
+    def label
+      as_(@label)
+    end
 
     # a textual description of the column and its contents. this will be displayed with any associated form input widget, so you may want to consider adding a content example.
-    attr_accessor :description
+    attr_writer :description
+    def description
+      as_(@description) if @description
+    end
 
     # this will be /joined/ to the :name for the td's class attribute. useful if you want to style columns on different ActiveScaffolds the same way, but the columns have different names.
     attr_accessor :css_class
@@ -49,7 +55,7 @@ module ActiveScaffold::DataStructures
     end
 
     # supported options:
-    #   * :select on a :belongs_to or :has_one association will display a select control in the form
+    #   * :select will display a simple <select> (or collection of checkboxes) on the form to (dis)associate records
     #   * :crud (default) will display a sub-form
     attr_writer :ui_type
     def ui_type
@@ -64,7 +70,7 @@ module ActiveScaffold::DataStructures
         @link = action
       else
         options[:label] ||= @label
-        options[:position] ||= :after
+        options[:position] ||= :after unless options.has_key?(:position)
         options[:type] ||= :record
         @link = ActiveScaffold::DataStructures::ActionLink.new(action, options)
       end
@@ -97,14 +103,6 @@ module ActiveScaffold::DataStructures
     # the below functionality is intended for internal consumption only #
     # ----------------------------------------------------------------- #
 
-    # checks whether this column is authorized for the given user (and possibly the given action)
-    def authorized?(current_user, action = nil)
-      security_method = "#{@name}_authorized_for_#{action}?" if action
-      security_method = "#{@name}_authorized?" unless security_method and @active_record_class.respond_to?(security_method)
-      return true unless @active_record_class.respond_to? security_method
-      return @active_record_class.send(security_method, current_user)
-    end
-
     # the ConnectionAdapter::*Column object from the ActiveRecord class
     attr_reader :column
 
@@ -115,6 +113,12 @@ module ActiveScaffold::DataStructures
     end
     def plural_association?
       self.association and [:has_many, :has_and_belongs_to_many].include? self.association.macro
+    end
+    def through_association?
+      self.association and self.association.options[:through]
+    end
+    def polymorphic_association?
+      self.association and self.association.options.has_key? :polymorphic and self.association.options[:polymorphic]
     end
 
     # an interpreted property. the column is virtual if it isn't from the active record model or any associated models
@@ -151,13 +155,13 @@ module ActiveScaffold::DataStructures
       self.sort = true
       self.search_sql = true
 
-      self.includes = association ? [association.name] : []
+      self.includes = (association and not polymorphic_association?) ? [association.name] : []
     end
 
     # just the field (not table.field)
     def field_name
       return nil if virtual?
-      column ? column.name : association.primary_key_name
+      column ? @active_record_class.connection.quote_column_name(column.name) : association.primary_key_name
     end
 
     protected

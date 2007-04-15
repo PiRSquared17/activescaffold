@@ -1,10 +1,9 @@
 module ActiveScaffold::Config
   class Show < Base
+    self.crud_type = :read
+
     def initialize(core_config)
       @core = core_config
-
-      # inherit from the core's list of columns.
-      self.columns = @core.columns.collect{|c| c.name}
 
       # start with the ActionLink defined globally
       @link = self.class.link.clone
@@ -13,7 +12,7 @@ module ActiveScaffold::Config
     # global level configuration
     # --------------------------
     cattr_accessor :link
-    @@link = ActiveScaffold::DataStructures::ActionLink.new('show', :label => _('SHOW'), :type => :record, :security_method => :show_authorized?)
+    @@link = ActiveScaffold::DataStructures::ActionLink.new('show', :label => 'Show', :type => :record, :security_method => :show_authorized?)
 
     # instance-level configuration
     # ----------------------------
@@ -22,12 +21,19 @@ module ActiveScaffold::Config
     attr_accessor :link
 
     # the label for this action. used for the header.
-    attr_accessor :label
+    attr_writer :label
+    def label
+      @label ? as_(@label) : as_('Show %s', @core.label.singularize)
+    end
 
     # provides access to the list of columns specifically meant for this action to use
-    attr_reader :columns
+    def columns
+      self.columns = @core.columns.collect{|c| c.name} unless @columns # lazy evaluation
+      @columns
+    end
     def columns=(val)
       @columns = ActiveScaffold::DataStructures::ActionColumns.new(*val)
+      @columns.action = self
     end
   end
 end

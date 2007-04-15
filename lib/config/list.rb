@@ -1,10 +1,9 @@
 module ActiveScaffold::Config
   class List < Base
+    self.crud_type = :read
+
     def initialize(core_config)
       @core = core_config
-
-      # inherit from the core's list of columns.
-      self.columns = @core.columns.collect{|c| c.name}
 
       # inherit from global scope
       # full configuration path is: defaults => global table => local table
@@ -33,9 +32,13 @@ module ActiveScaffold::Config
     # ----------------------------
 
     # provides access to the list of columns specifically meant for the Table to use
-    attr_reader :columns
+    def columns
+      self.columns = @core.columns.collect{|c| c.name} unless @columns # lazy evaluation
+      @columns
+    end
     def columns=(val)
       @columns = ActiveScaffold::DataStructures::ActionColumns.new(*val)
+      @columns.action = self
     end
 
     # how many rows to show at once
@@ -57,14 +60,14 @@ module ActiveScaffold::Config
     # the label for this List action. used for the header.
     attr_writer :label
     def label
-      @label || @core.label
+      @label ? as_(@label) : @core.label
     end
 
     class UserSettings < UserSettings
       def label
-        @session[:label] || @conf.label
+        @session[:label] ? as_(@session[:label]) : @conf.label
       end
-      
+
       def per_page
         @session['per_page'] = @params['limit'].to_i if @params.has_key? 'limit'
         @session['per_page'] || @conf.per_page

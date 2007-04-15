@@ -1,16 +1,14 @@
 module ActiveScaffold::Actions
   module Create
-    include Base
-
     def self.included(base)
-      super
+      base.before_filter :create_authorized?, :only => [:new, :create]
       base.verify :method => :post,
                   :only => :create,
                   :redirect_to => { :action => :index }
     end
 
     def new
-      insulate { do_new }
+      do_new
 
       respond_to do |type|
         type.html do
@@ -27,23 +25,19 @@ module ActiveScaffold::Actions
     end
 
     def create
-      insulate { do_create }
+      do_create
 
       respond_to do |type|
         type.html do
           if successful?
-            flash[:info] = _('CREATED %s', @record.to_label)
+            flash[:info] = as_('Created %s', @record.to_label)
             return_to_main
           else
             render(:action => 'create_form', :layout => true)
           end
         end
         type.js do
-          if successful?
-            render :action => 'create', :layout => false
-          else
-            render :action => 'form_messages.rjs', :layout => false
-          end
+          render :action => 'create.rjs', :layout => false
         end
         type.xml { render :xml => response_object.to_xml, :content_type => Mime::XML, :status => response_status }
         type.json { render :text => response_object.to_json, :content_type => Mime::JSON, :status => response_status }
@@ -53,17 +47,42 @@ module ActiveScaffold::Actions
 
     protected
 
+    # A simple method to find and prepare an example new record for the form
+    # May be overridden to customize the behavior (add default values, for instance)
     def do_new
       @record = active_scaffold_config.model.new
     end
 
+    # A somewhat complex method to actually create a new record. The complexity is from support for subforms and associated records.
+    # If you want to customize this behavior, consider using the +before_create_save+ and +after_create_save+ callbacks.
     def do_create
-      active_scaffold_config.model.transaction do
-        @record = update_record_from_params(active_scaffold_config.model.new, active_scaffold_config.create.columns, params[:record])
-        active_scaffold_constraints.each { |k, v| @record.send("#{k}=", v) }
-        # TODO: make this a "recursive" save
-        @record.save
+      begin
+        active_scaffold_config.model.transaction do
+          @record = update_record_from_params(active_scaffold_config.model.new, active_scaffold_config.create.columns, params[:record])
+          apply_constraints_to_record(@record)
+          before_create_save(@record)
+          # can't 'and' these together because they must *both* happen
+          @record.valid?
+          @record.associated_valid?
+          if successful?
+            @record.save! and @record.save_associated!
+            after_create_save(@record)
+          end
+        end
+      rescue ActiveRecord::RecordInvalid
       end
+    end
+
+    # override this method if you want to inject data in the record (or its associated objects) before the save
+    def before_create_save(record); end
+
+    # override this method if you want to do something after the save
+    def after_create_save(record); end
+
+    # The default security delegates to ActiveRecordPermissions.
+    # You may override the method to customize.
+    def create_authorized?
+      authorized_for?(:action => :create)
     end
   end
 end

@@ -1,23 +1,25 @@
 module ActiveScaffold::Actions
   module Delete
-    include Base
+    def self.included(base)
+      base.before_filter :delete_authorized?, :only => [:delete, :destroy]
+    end
 
     # this method is for html mode. it provides "the missing action" (http://thelucid.com/articles/2006/07/26/simply-restful-the-missing-action).
     # it also gives us delete confirmation for html mode. woo!
     def delete
-      insulate { do_delete }
+      @record = find_if_allowed(params[:id], :destroy)
       render :action => 'delete'
     end
 
     def destroy
       return redirect_to(params.merge(:action => :delete)) if request.get?
 
-      insulate { do_destroy }
+      do_destroy
 
       @successful = successful?
       respond_to do |type|
         type.html do
-          flash[:info] = _('DELETED %s', @record.to_label)
+          flash[:info] = as_('Deleted %s', @record.to_label)
           return_to_main
         end
         type.js { render(:action => 'destroy.rjs', :layout => false) }
@@ -29,13 +31,17 @@ module ActiveScaffold::Actions
 
     protected
 
-    def do_delete
-      @record = find_if_allowed(params[:id], 'delete')
+    # A simple method to handle the actual destroying of a record
+    # May be overridden to customize the behavior
+    def do_destroy
+      @record = find_if_allowed(params[:id], :destroy)
+      @record.destroy
     end
 
-    def do_destroy
-      @record = find_if_allowed(params[:id], 'delete')
-      @record.destroy
+    # The default security delegates to ActiveRecordPermissions.
+    # You may override the method to customize.
+    def delete_authorized?
+      authorized_for?(:action => :destroy)
     end
   end
 end

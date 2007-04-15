@@ -3,7 +3,10 @@ module ActiveScaffold::DataStructures
     include Enumerable
     include ActiveScaffold::Configurable
 
-    attr_accessor :label
+    attr_writer :label
+    def label
+      as_(@label)
+    end
 
     def initialize(*args)
       @set = []
@@ -26,6 +29,7 @@ module ActiveScaffold::DataStructures
       args.collect! { |a| a.to_sym } # symbolize the args
       @set.reject! { |c| args.include? c.to_sym } # reject all items specified
     end
+    alias_method :remove, :exclude
 
     # returns an array of items with the provided names
     def find_by_names(*names)

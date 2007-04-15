@@ -1,6 +1,6 @@
 module ActiveScaffold
   module Finder
-    def self.create_conditions_for_columns(tokens, columns, like_pattern = '?%')
+    def self.create_conditions_for_columns(tokens, columns, like_pattern = '%?%')
       tokens = [tokens] if tokens.is_a? String
 
       where_clauses = []
@@ -22,9 +22,9 @@ module ActiveScaffold
       @active_scaffold_conditions ||= []
     end
 
-    attr_writer :active_scaffold_includes
-    def active_scaffold_includes
-      @active_scaffold_includes ||= []
+    attr_writer :active_scaffold_joins
+    def active_scaffold_joins
+      @active_scaffold_joins ||= []
     end
 
     def all_conditions
@@ -41,7 +41,7 @@ module ActiveScaffold
     def find_if_allowed(id, action, klass = nil)
       klass ||= active_scaffold_config.model
       record = klass.find(id)
-      raise ActiveScaffold::RecordNotAllowed unless record_allowed_for_action?(record, action)
+      raise ActiveScaffold::RecordNotAllowed unless record.authorized_for?(:action => action.to_sym)
       return record
     end
 
@@ -60,7 +60,7 @@ module ActiveScaffold
       # create a general-use options array that's compatible with Rails finders
       finder_options = { :order => build_order_clause(options[:sorting]),
                          :conditions => all_conditions,
-                         :include => active_scaffold_includes.empty? ? nil : active_scaffold_includes}
+                         :include => active_scaffold_joins.empty? ? nil : active_scaffold_joins}
 
       # NOTE: we must use :include in the count query, because some conditions may reference other tables
       count = klass.count(finder_options.reject{|k,v| [:order].include? k})
@@ -121,7 +121,7 @@ module ActiveScaffold
       sorter = column.sort[:method]
       collection = collection.sort_by { |record|
         value = (sorter.is_a? Proc) ? record.instance_eval(&sorter) : record.instance_eval(sorter)
-        value = column.column.type_cast('') if value.nil? and column.column
+        value = '' if value.nil?
         value
       }
       collection.reverse! if order.downcase == 'desc'

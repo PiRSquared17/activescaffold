@@ -9,6 +9,10 @@ module ActiveScaffold::DataStructures
       self.type = :table
       self.inline = true
       self.method = :get
+      self.crud_type = :destroy if [:destroy].include?(action.to_sym)
+      self.crud_type = :create if [:create, :new].include?(action.to_sym)
+      self.crud_type = :update if [:edit, :update].include?(action.to_sym)
+      self.crud_type ||= :read
 
       # apply quick properties
       options.each_pair do |k, v|
@@ -27,19 +31,31 @@ module ActiveScaffold::DataStructures
     attr_accessor :method
 
     # what string to use to represent this action
-    attr_accessor :label
+    attr_writer :label
+    def label
+      as_(@label)
+    end
 
     # if the action requires confirmation
-    attr_accessor :confirm
+    attr_writer :confirm
+    def confirm
+      @confirm.is_a?(String) ? as_(@confirm) : @confirm
+    end
     def confirm?
       @confirm ? true : false
     end
 
-    # what method to call on a record to see if this action_link is permitted
+    # what method to call on the controller to see if this action_link should be visible
+    # note that this is only the UI part of the security. to prevent URL hax0rz, you also need security on requests (e.g. don't execute update method unless authorized).
     attr_writer :security_method
     def security_method
       @security_method || "#{self.label.underscore.downcase.gsub(/ /, '_')}_authorized?"
     end
+
+    # the crud type of the (eventual?) action. different than :method, because this crud action may not be imminent.
+    # this is used to determine record-level authorization (e.g. record.authorized_for?(:action => link.crud_type).
+    # options are :create, :read, :update, and :destroy
+    attr_accessor :crud_type
 
     # an "inline" link is inserted into the existing page
     # exclusive with popup? and page?
@@ -69,6 +85,7 @@ module ActiveScaffold::DataStructures
     # for :type => :table, supported values are:
     #   :top
     #   :bottom
+    #   :replace (for updating the entire table)
     #   false (no attempt at positioning)
     # for :type => :record, supported values are:
     #   :before

@@ -1,19 +1,9 @@
-require 'test/test_helper'
-require 'test/model_stub'
+require File.join(File.dirname(__FILE__), '../test_helper.rb')
+# require 'test/model_stub'
 
 class ColumnTest < Test::Unit::TestCase
   def setup
     @column = ActiveScaffold::DataStructures::Column.new(:a, ModelStub)
-  end
-
-  def test_authorized
-    column_a = @column
-    column_b = ActiveScaffold::DataStructures::Column.new(:b, ModelStub)
-
-    user = nil
-    action = 'bar'
-    assert column_a.authorized?(user, action)
-    assert !column_b.authorized?(user, action)
   end
 
   def test_column

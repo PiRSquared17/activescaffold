@@ -6,7 +6,7 @@ module ActionController #:nodoc:
         @rendering_adapter = true # recursion control
         # if we need an adapter, then we render the actual stuff to a string and insert it into the adapter template
         render :file => rewrite_template_path_for_active_scaffold(params[:adapter]),
-               :locals => {:payload => render_to_string(*args, &block)},
+               :locals => {:payload => render_to_string(args.first, &block)},
                :use_full_path => true
         @rendering_adapter = nil # recursion control
       else
@@ -19,7 +19,7 @@ module ActionController #:nodoc:
     def render_action_with_active_scaffold(action_name, status = nil, with_layout = true) #:nodoc:
       if self.class.uses_active_scaffold?
         path = rewrite_template_path_for_active_scaffold(action_name)
-        return render(:template => path, :layout => with_layout) if path != action_name
+        return render(:template => path, :layout => with_layout, :status => status) if path != action_name
       end
       return render_action_without_active_scaffold(action_name, status, with_layout)
     end

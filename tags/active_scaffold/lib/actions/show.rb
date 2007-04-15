@@ -1,8 +1,11 @@
 module ActiveScaffold::Actions
   module Show
-    include ActiveScaffold::Actions::Base
+    def self.included(base)
+      base.before_filter :show_authorized?, :only => :show
+    end
+
     def show
-      insulate { do_show }
+      do_show
 
       @successful = successful?
       respond_to do |type|
@@ -16,8 +19,16 @@ module ActiveScaffold::Actions
 
     protected
 
+    # A simple method to retrieve and prepare a record for showing.
+    # May be overridden to customize show routine
     def do_show
-      @record = find_if_allowed(params[:id], 'show')
+      @record = find_if_allowed(params[:id], :read)
+    end
+
+    # The default security delegates to ActiveRecordPermissions.
+    # You may override the method to customize.
+    def show_authorized?
+      authorized_for?(:action => :read)
     end
   end
 end

@@ -1,5 +1,5 @@
-require 'test/test_helper'
-require 'test/model_stub'
+require File.join(File.dirname(__FILE__), '../test_helper.rb')
+# require 'test/model_stub'
 
 class ColumnsTest < Test::Unit::TestCase
   def setup
@@ -49,21 +49,6 @@ class ColumnsTest < Test::Unit::TestCase
   def test_each
     @columns.each do |column|
       assert [:a, :b].include?(column.name)
-    end
-  end
-
-  def test_blacklist
-    column_b = @columns[:b] # grab it now, before it's too late
-    # poke @columns so it picks up on :b not being authorized
-    @columns.create_blacklist(nil, 'bar')
-
-    # then test
-    assert @columns.unauthorized_columns.include?(column_b)
-    @columns.each do |column|
-      assert column.name == :a
-    end
-    assert_raise ActiveScaffold::ColumnNotAllowed do
-      @columns[:b]
     end
   end
 

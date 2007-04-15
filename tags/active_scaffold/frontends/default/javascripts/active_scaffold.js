@@ -3,6 +3,11 @@ if (typeof Prototype == 'undefined')
   warning = "ActiveScaffold Error: Prototype could not be found. Please make sure that your application's layout includes prototype.js (e.g. <%= javascript_include_tag :defaults %>) *before* it includes active_scaffold.js (e.g. <%= active_scaffold_includes %>).";
   alert(warning);
 }
+if (Prototype.Version.substring(0, 8) == '1.5.0_rc')
+{
+  warning = "ActiveScaffold Error: Prototype 1.5.0_rc is not supported. Please update prototype.js (rake rails:update:javascripts).";
+  alert(warning);
+}
 
 /*
  * Simple utility methods
@@ -12,7 +17,7 @@ var ActiveScaffold = {
   stripe: function(tableBody) {
     var even = false;
     var tableBody = $(tableBody);
-    var tableRows = tableBody.getElementsByTagName("tr");
+    var tableRows = tableBody.down("tr");
     var length = tableBody.rows.length;
 
     for (var i = 0; i < length; i++) {
@@ -40,23 +45,29 @@ var ActiveScaffold = {
       $(emptyMessageElement).hide();
     }
   },
-  removeSortClasses: function(active_scaffoldId) {
-    $$('#' + active_scaffoldId + ' td.sorted').each(function(element) {
+  removeSortClasses: function(scaffold_id) {
+    $$('#' + scaffold_id + ' td.sorted').each(function(element) {
       element.removeClassName("sorted");
     });
-    $$('#' + active_scaffoldId + ' th.sorted').each(function(element) {
+    $$('#' + scaffold_id + ' th.sorted').each(function(element) {
       element.removeClassName("sorted");
       element.removeClassName("asc");
       element.removeClassName("desc");
     });
   },
-  decrement_record_count: function(active_scaffoldId) {
-    count = $$('#' + active_scaffoldId + ' span.active-scaffold-records').first();
+  decrement_record_count: function(scaffold_id) {
+    count = $$('#' + scaffold_id + ' span.active-scaffold-records').first();
     count.innerHTML = parseInt(count.innerHTML) - 1;
   },
-  increment_record_count: function(active_scaffoldId) {
-    count = $$('#' + active_scaffoldId + ' span.active-scaffold-records').first();
+  increment_record_count: function(scaffold_id) {
+    count = $$('#' + scaffold_id + ' span.active-scaffold-records').first();
     count.innerHTML = parseInt(count.innerHTML) + 1;
+  },
+
+  server_error_response: '',
+  report_500_response: function(active_scaffold_id) {
+    messages_container = $(active_scaffold_id).down('td.messages-container');
+    new Insertion.Top(messages_container, this.server_error_response);
   }
 }
 
@@ -82,10 +93,12 @@ Element.replace = function(element, html) {
     }
   } else {
     var range = element.ownerDocument.createRange();
-    range.selectNodeContents(element);
+    /* patch to fix <form> replaces in Firefox. see http://dev.rubyonrails.org/ticket/8010 */
+    range.selectNodeContents(element.parentNode);
     element.parentNode.replaceChild(range.createContextualFragment(html.stripScripts()), element);
   }
   setTimeout(function() {html.evalScripts()}, 10);
+  return element;
 };
 
 /*
@@ -95,7 +108,7 @@ Object.extend(String.prototype, {
   append_params: function(params) {
     url = this;
     if (url.indexOf('?') == -1) url += '?';
-    else if (url.indexOf('&') != url.length) url += '&';
+    else if (url.lastIndexOf('&') != url.length) url += '&';
 
     url += $H(params).collect(function(item) {
       return item.key + '=' + item.value;
@@ -104,71 +117,6 @@ Object.extend(String.prototype, {
     return url;
   }
 });
-
-/*
- * Nested Form... sorta
- */
-Form.Pseudo = Class.create();
-Form.Pseudo.prototype = {
-  initialize: function(element, options) {
-    this.element = $(element);
-    this.href = $$("#" + this.element.id + " .form-action")[0].href;
-    this.setOptions(options);
-
-    // Put hook on buttons
-    this.submitButtons = $$("#" + this.element.id + " .submit");
-    for (var i=0; i < this.submitButtons.length; i++) {
-      Event.observe(this.submitButtons[i], 'click', this.onSubmit.bindAsEventListener(this));
-    }
-
-    // find action uri for request
-    this.formElements = Form.getElements(this.element);
-    for (var i=0; i < this.formElements.length; i++) {
-      Event.observe(this.formElements[i], 'keydown', this.onKeyPress.bindAsEventListener(this));
-    }
-  },
-
-  setOptions: function(options) {
-  this.options = { asynchronous: true,
-                     evalScripts: true,
-                     onLoading: this.onLoading.bindAsEventListener(this),
-                     onLoaded: this.onComplete.bindAsEventListener(this) };
-    Object.extend(this.options, options || {});
-  },
-
-  onKeyPress: function(event) {
-    if (event.keyCode == Event.KEY_RETURN) {
-      this.onSubmit(event);
-    }
-  },
-
-  onLoading: function(request) {
-    Form.disable(this.element);
-  },
-
-  onComplete: function(request) {
-    Form.enable(this.element);
-  },
-
-  onSubmit: function(event) {
-    var params = Object.extend(this.options, { parameters: Form.serialize(this.element) });
-    new Ajax.Request(this.href, params);
-    Event.stop(event);
-  }
-}
-
-var PsuedoForm = {
-  clear: function(element) {
-    this.element = $(element);
-
-    this.formElements = Form.getElements(this.element);
-    for (var i=0; i < this.formElements.length; i++) {
-      if (this.formElements[i].type.toLowerCase() != 'submit') {
-        this.formElements[i].value = "";
-      }
-    }
-  }
-}
 
 /**
  * A set of links. As a set, they can be controlled such that only one is "open" at a time, etc.
@@ -211,9 +159,6 @@ ActiveScaffold.ActionLink.Abstract.prototype = {
       this.open();
       Event.stop(event);
     }.bind(this));
-
-
-    this.tag.action_link = this;
   },
 
   open: function() {
@@ -229,12 +174,13 @@ ActiveScaffold.ActionLink.Abstract.prototype = {
         if (this.position) {
           this.insert(request.responseText);
           if (this.hide_target) this.target.hide();
-        }	else {
-					request.evalResponse();
-				}
+        } else {
+          request.evalResponse();
+        }
       }.bind(this),
 
       onFailure: function(request) {
+        ActiveScaffold.report_500_response(this.scaffold_id());
         if (this.position) this.enable()
       }.bind(this),
 
@@ -254,6 +200,11 @@ ActiveScaffold.ActionLink.Abstract.prototype = {
     if (this.hide_target) this.target.show();
   },
 
+  reload: function() {
+    this.close();
+    this.open();
+  },
+
   get_new_adapter_id: function() {
     var id = 'adapter_';
     var i = 0;
@@ -271,6 +222,10 @@ ActiveScaffold.ActionLink.Abstract.prototype = {
 
   is_disabled: function() {
     return this.tag.hasClassName('disabled');
+  },
+
+  scaffold_id: function() {
+    return this.tag.up('div.active-scaffold').id;
   }
 }
 
@@ -312,10 +267,18 @@ ActiveScaffold.ActionLink.Record.prototype = Object.extend(new ActiveScaffold.Ac
       return false;
     }
 
-    this.adapter.down('a.inline-adapter-close').observe('click', function(event) {
+    var closer = function(event) {
       this.close_with_refresh();
-      Event.stop(event);
-    }.bind(this));
+      if (event) Event.stop(event);
+    }.bind(this);
+    var self = this;
+
+    this.adapter.down('a.inline-adapter-close').observe('click', closer);
+    // anything in the insert with a class of cancel gets the closer method, and a reference to this object for good measure
+    this.adapter.getElementsByClassName('cancel').each(function(elem) {
+      elem.observe('click', closer);
+      elem.link = self;
+    })
 
     new Effect.Highlight(this.adapter.down('td'));
   },
@@ -331,7 +294,11 @@ ActiveScaffold.ActionLink.Record.prototype = Object.extend(new ActiveScaffold.Ac
         if (this.target.hasClassName('even')) new_target.addClassName('even');
         this.target = new_target;
         this.close();
-      }.bind(this)
+      }.bind(this),
+
+      onFailure: function(request) {
+        ActiveScaffold.report_500_response(this.scaffold_id());
+      }
     });
   },
 
@@ -357,7 +324,7 @@ ActiveScaffold.Actions.Table = Class.create();
 ActiveScaffold.Actions.Table.prototype = Object.extend(new ActiveScaffold.Actions.Abstract(), {
   instantiate_link: function(link) {
     var l = new ActiveScaffold.ActionLink.Table(link, this.target, this.loading_indicator);
-    l.url = l.url.append_params({adapter: '_list_inline_adapter'});
+    if (l.position) l.url = l.url.append_params({adapter: '_list_inline_adapter'});
     return l;
   }
 });
@@ -373,10 +340,18 @@ ActiveScaffold.ActionLink.Table.prototype = Object.extend(new ActiveScaffold.Act
       throw 'Unknown position "' + this.position + '"'
     }
 
-    this.adapter.down('a.inline-adapter-close').observe('click', function(event) {
+    var closer = function(event) {
       this.close();
-      Event.stop(event);
-    }.bind(this));
+      if (event) Event.stop(event);
+    }.bind(this);
+    var self = this;
+
+    this.adapter.down('a.inline-adapter-close').observe('click', closer);
+    // anything in the insert with a class of cancel gets the closer method, and a reference to this object for good measure
+    this.adapter.getElementsByClassName('cancel').each(function(elem) {
+      elem.observe('click', closer);
+      elem.link = self;
+    })
 
     new Effect.Highlight(this.adapter.down('td'));
   }

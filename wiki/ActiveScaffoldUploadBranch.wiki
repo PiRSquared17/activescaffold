@@ -1,0 +1,26 @@
+# branch of active_scaffold RC2 that allows Ajax style file uploads
+
+= Introduction =
+
+If your application needs to to upload files through active scaffold, use this branch:
+
+http://activescaffold.googlecode.com/svn/branches/upload
+
+This code is not fully tested, and is not supported at the time being.  However, it has been used in many projects and works great.  It is planned to merge this functionality in a future release.
+
+= Usage Example =
+
+To enable file uploads after you install the active scaffold plug-in from the above branch:
+
+{{{
+
+  active_scaffold :entry do |config|
+    config.create.multipart = true
+    config.update.multipart = true
+  end
+
+}}}
+
+
+
+

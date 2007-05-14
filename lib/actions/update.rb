@@ -12,20 +12,10 @@ module ActiveScaffold::Actions
 
       respond_to do |type|
         type.html do
-          if params[:iframe]=='true' # was this an iframe post ?
-            responds_to_parent do
-              if successful?
-                render :action => 'update.rjs', :layout => false
-              else
-                render :action => 'form_messages.rjs', :layout => false
-              end
-            end
+          if successful?
+            render(:action => 'update_form', :layout => true)
           else
-            if successful?
-              render(:action => 'update_form', :layout => true)
-            else
-              return_to_main
-            end
+            return_to_main
           end
         end
         type.js do
@@ -39,11 +29,21 @@ module ActiveScaffold::Actions
 
       respond_to do |type|
         type.html do
-          if successful?
-            flash[:info] = as_('Updated %s', @record.to_label)
-            return_to_main
-          else
-            render(:action => 'update_form', :layout => true)
+          if params[:iframe]=='true' # was this an iframe post ?
+            responds_to_parent do
+              if successful?
+                render :action => 'update.rjs', :layout => false
+              else
+                render :action => 'form_messages.rjs', :layout => false
+              end
+            end
+          else # just a regular post
+            if successful?
+              flash[:info] = as_('Updated %s', @record.to_label)
+              return_to_main
+            else
+              render(:action => 'update_form', :layout => true)
+            end
           end
         end
         type.js do
@@ -72,11 +72,13 @@ module ActiveScaffold::Actions
           @record = update_record_from_params(@record, active_scaffold_config.update.columns, params[:record])
           before_update_save(@record)
           # can't 'and' these together because they must *both* happen
-          @record.valid?
-          @record.associated_valid?
+          self.successful = [@record.valid?, @record.associated_valid?].all? {|v| v == true} # this syntax avoids a short-circuit
           @record.save! and @record.save_associated! if successful?
         end
       rescue ActiveRecord::RecordInvalid
+      rescue ActiveRecord::StaleObjectError
+        @record.errors.add_to_base as_("Version inconsistency - this record has been modified since you started editing it.")
+        self.successful=false
       end
     end
 

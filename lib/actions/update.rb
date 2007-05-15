@@ -29,21 +29,11 @@ module ActiveScaffold::Actions
 
       respond_to do |type|
         type.html do
-          if params[:iframe]=='true' # was this an iframe post ?
-            responds_to_parent do
-              if successful?
-                render :action => 'update.rjs', :layout => false
-              else
-                render :action => 'form_messages.rjs', :layout => false
-              end
-            end
-          else # just a regular post
-            if successful?
-              flash[:info] = as_('Updated %s', @record.to_label)
-              return_to_main
-            else
-              render(:action => 'update_form', :layout => true)
-            end
+          if successful?
+            flash[:info] = as_('Updated %s', @record.to_label)
+            return_to_main
+          else
+            render(:action => 'update_form', :layout => true)
           end
         end
         type.js do

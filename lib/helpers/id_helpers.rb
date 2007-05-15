@@ -104,10 +104,5 @@ module ActionView::Helpers
     def clean_id(val)
       val.gsub /[^-_0-9a-zA-Z]/, '-'
     end
-    
-    def action_iframe_id(options)
-      "#{controller_id}-#{options[:action]}-#{options[:id]}-iframe"
-    end
-    
   end
 end

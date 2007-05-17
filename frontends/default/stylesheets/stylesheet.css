@@ -483,7 +483,10 @@ width: 16px;
 margin: 0;
 }
 
-.active-scaffold .active-scaffold-header .loading-indicator {
+.active-scaffold .active-scaffold-header .loading-indicator,
+.active-scaffold .update .loading-indicator,
+.active-scaffold .create .loading-indicator {
+vertical-align: bottom;
 margin-bottom: 3px;
 }
 

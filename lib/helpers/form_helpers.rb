@@ -132,9 +132,6 @@ module ActionView::Helpers
       association_options_count(association, options_for_association_conditions(association))
     end
 
-    # A useful override for customizing the records present in an association dropdown.
-    # Should work in both the subform and ui_type=>:select modes.
-    # Check association.name to specialize the conditions per-column.
     def options_for_association_conditions(association)
       case association.macro
         when :has_one, :has_many
@@ -158,28 +155,6 @@ module ActionView::Helpers
         label, value = option[0], option[1]
         value.nil? ? "<option value="">#{label}</option>" : "<option value=\"#{value}\">#{label}</option>"
       end
-    end
-
-    def form_remote_upload_tag(url_for_options = {}, options = {})
-      output=""
-      
-      output << "<iframe id='#{action_iframe_id(url_for_options)}' name='#{action_iframe_id(url_for_options)}' style='display:none'></iframe>"
-      
-      options[:form] = true
-  
-      options ||= {}
-      
-      onsubmits = options[:onsubmit] ? [ options[:onsubmit] ] : [ ]
-      onsubmits << "setTimeout(function() { #{options[:loading]} }, 10); "
-      # the setTimeout prevents the Form.disable from being called before the submit.  If that occurs, then no data will be posted.
-      onsubmits << "return true"
-      
-      # simulate a "loading"
-      options[:onsubmit] = onsubmits * ';'
-      options[:target] = action_iframe_id(url_for_options)
-      options[:multipart] = true
-      
-      output << form_tag(url_for_options, options)
     end
 
   end

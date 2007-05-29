@@ -27,6 +27,7 @@ module ActionController
         options_as_params = options.clone
         options_as_params[:action] ||= 'index' if options[:controller]
         options_as_params[:action] = options_as_params[:action].to_s if options_as_params[:action]
+        options_as_params[:controller] = options_as_params[:controller].to_s if options_as_params[:controller]
         options_as_params
       end
     end

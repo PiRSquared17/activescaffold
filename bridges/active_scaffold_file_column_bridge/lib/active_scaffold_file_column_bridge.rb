@@ -15,11 +15,14 @@ module ActiveScaffold::Config
       
       # automatically set the forum_ui to a file column
       @file_column_fields.each{|field|
-        self.columns[field].form_ui = :file_column
-        
-        # set null to false so active_scaffold wont set it to null
-        # This is a bit hackish
-        self.model.columns_hash[field.to_s].instance_variable_set("@null", false)
+        begin
+          self.columns[field].form_ui = :file_column
+          
+          # set null to false so active_scaffold wont set it to null
+          # This is a bit hackish
+          self.model.columns_hash[field.to_s].instance_variable_set("@null", false)
+        rescue
+        end
       }
     end
     

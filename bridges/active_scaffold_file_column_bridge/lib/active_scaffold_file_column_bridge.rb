@@ -1,3 +1,9 @@
+module ActiveScaffold::DataStructures
+  class Column
+    attr_accessor :file_column_display
+  end
+end
+
 module ActiveScaffold::Config
   class Core < Base
     attr_accessor :file_column_fields
@@ -41,8 +47,23 @@ module ActiveScaffold
         end
         
         value = record.send(column.name)
+        
+        unless column.file_column_display
+          begin
+            options = record.send("#{column.name}_options")
+            versions = options[:magick][:versions]
+            raise unless versions.stringify_keys["thumb"]
+            column.file_column_display = :image
+          rescue
+            column.file_column_display = :link
+          end
+        end
+                
         return "" if value.nil?
-        link_to File.basename(value), url_for_file_column(record, column.name.to_s), :popup => true 
+        
+        link_to( (column.file_column_display==:link) ? File.basename(value) : image_tag(url_for_file_column(record, column.name.to_s, "thumb"), :border => 0), 
+          url_for_file_column(record, column.name.to_s), 
+          :popup => true)
       end
       
       alias_method_chain :render_column, :file_column
